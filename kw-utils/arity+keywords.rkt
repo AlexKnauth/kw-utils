@@ -9,10 +9,13 @@
          arity+keywords-matches?
          procedure-arity+keywords-matches?
          procedure-arity+keywords-matches?/c
-         arity+keywords-combine/or
-         arity+keywords-combine/and
+         arity+keywords-combine/or  arity-combine/or  kws-combine/or
+         arity+keywords-combine/and arity-combine/and kws-combine/and
          arity+keywords-combine
-         arity+keywords-subtract
+         arity+keywords-add      arity-add
+         arity+keywords-subtract arity-subtract
+         arity-map
+         kws-sort
          )
 
 (require racket/function
@@ -40,12 +43,11 @@
   (define new-arity (normalize-arity arity))
   (define new-required-kws
     (cond [(empty? new-arity) '()]
-          [else (sort required-kws keyword<?)]))
+          [else (kws-sort required-kws)]))
   (define new-allowed-kws
     (cond [(empty? new-arity) '()]
           [(list? allowed-kws)
-           (sort (remove-duplicates (append new-required-kws allowed-kws))
-                 keyword<?)]
+           (kws-combine/or new-required-kws allowed-kws)]
           [else #f]))
   (values new-arity new-required-kws new-allowed-kws))
 
@@ -53,8 +55,6 @@
 (struct arity+keywords (arity required-kws allowed-kws) #:transparent
   #:guard arity+keywords-guard)
 
-(define empty-arity+keywords (arity+keywords '() '() '()))
-(define any-arity+keywords (arity+keywords (arity-at-least 0) '() #f))
 
 ;; procedure-arity+keywords : Procedure -> Arity+Keywords
 (define (procedure-arity+keywords proc)
@@ -128,17 +128,11 @@
                [(empty? a2.arity) a1]
                [else
                 (define arity
-                  (normalize-arity (flatten (list a1.arity a2.arity))))
+                  (arity-combine/or a1.arity a2.arity))
                 (define required-kws
-                  (for*/list ([a1-kw (in-list a1.required-kws)]
-                              [a2-kw (in-list a2.required-kws)]
-                              #:when (equal? a1-kw a2-kw))
-                    a1-kw))
+                  (kws-combine/and a1.required-kws a2.required-kws))
                 (define allowed-kws
-                  (and a1.allowed-kws a2.allowed-kws
-                       (remove-duplicates
-                        (append a1.allowed-kws
-                                a2.allowed-kws))))
+                  (kws-combine/or a1.allowed-kws a2.allowed-kws))
                 (arity+keywords arity required-kws allowed-kws)])]
     [(a1 . rest-args) (arity+keywords-combine/or a1 (apply arity+keywords-combine/or rest-args))]
     ))
@@ -179,23 +173,19 @@
              (define arity
                (arity-combine/and a1.arity a2.arity))
              (define required-kws
-               (remove-duplicates
-                (append a1.required-kws
-                        a2.required-kws)))
+               (kws-combine/or a1.required-kws a2.required-kws))
              (define allowed-kws
-               (cond [(not (list? a1.allowed-kws)) a2.allowed-kws]
-                     [(not (list? a2.allowed-kws)) a1.allowed-kws]
-                     [else
-                      (for*/list ([a1-kw (in-list a1.allowed-kws)]
-                                  [a2-kw (in-list a2.allowed-kws)]
-                                  #:when (equal? a1-kw a2-kw))
-                        a1-kw)]))
+               (kws-combine/and a1.allowed-kws a2.allowed-kws))
              (cond [(for/and ([req-kw (in-list required-kws)])
                       (member req-kw allowed-kws))
                     (arity+keywords arity required-kws allowed-kws)]
                    [else empty-arity+keywords])]
     [(a1 . rest-args) (arity+keywords-combine/and a1 (apply arity+keywords-combine/and rest-args))]
     ))
+
+;; arity-combine/or : Procedure-Arity ... -> Procedure-Arity
+(define (arity-combine/or . args)
+  (normalize-arity (flatten args)))
 
 ;; arity-combine/and : Procedure-Arity Procedure-Arity -> Procedure-Arity
 (define (arity-combine/and a1 a2)
@@ -245,6 +235,44 @@
                (arity-combine/and a1 n))))]
           [else (error 'arity-combine/and "this should never happen")])))
 
+;; kws-combine/or
+;; note that this combines the allowed keywords in an or-like way.
+;; for the required keywords, arity+keywords-combine/or actually uses kws-append/and
+(define (kws-combine/or . args)
+  (cond [(empty? args) '()]
+        [(ormap false? args) #f]
+        [else
+         (kws-sort (apply append args))]))
+
+(define kws-combine/and
+  (case-lambda
+    [() #f]
+    [(a) (kws-sort a)]
+    [(a b)
+     (kws-sort
+      (cond [(false? a) b]
+            [(false? b) a]
+            [else
+             (for*/list ([a-kw (in-list a)]
+                         [b-kw (in-list b)]
+                         #:when (equal? a-kw b-kw))
+               a-kw)]))]
+    [(a b . rst)
+     (apply kws-combine/and (kws-combine/and a b) rst)]))
+
+(define (kws-sort kws)
+  (cond [(false? kws) #f]
+        [else (sort (remove-duplicates kws) keyword<?)]))
+  
+
+
+;; arity+keywords-add : Arity+Keywords Natural (Listof Keyword) (Listof Keyword) -> Arity+Keywords
+(define (arity+keywords-add a n req-kws allwd-kws)
+  (match-define (arity+keywords a.arity a.req-kws a.allowed-kws) a)
+  (define arity (arity-add a.arity n))
+  (define required-kws (kws-combine/or a.req-kws req-kws))
+  (define allowed-kws (kws-combine/or a.allowed-kws req-kws allwd-kws))
+  (arity+keywords arity req-kws allowed-kws))
 
 ;; arity+keywords-subtract : Arity+Keywords Natural (Listof Keyword) -> Arity+Keywords
 (define (arity+keywords-subtract a n kws)
@@ -266,25 +294,31 @@
            (remove* kws a.allowed-kws))
          (arity+keywords arity req-kws allowed-kws)]))
 
-;; arity-subtract : Procedure-Arity Natural -> Procedure-Arity
-(define (arity-subtract arity n)
+;; arity-add : Procedure-Arity Integer -> Procedure-Arity
+;; n could be negative
+(define (arity-add arity n)
   (arity-map
    (λ (a)
-     (arity-subtract/simple a n))
+     (arity-add/simple a n))
    arity))
 
-;; arity-subtract/simple : [(U Natural (arity-at-least Natural)) Natural -> Procedure-Arity]
-(define (arity-subtract/simple a n)
+;; arity-subtract : Procedure-Arity Natural -> Procedure-Arity
+(define (arity-subtract arity n)
+  (arity-add arity (- n)))
+
+;; arity-add/simple : [(U Natural (arity-at-least Natural)) Integer -> Procedure-Arity]
+;; n could be negative
+(define (arity-add/simple a n)
   (cond [(number? a)
-         (define new-a (- a n))
+         (define new-a (+ a n))
          (cond [(negative? new-a) '()]
                [else new-a])]
         [(arity-at-least? a)
          (define a.n (arity-at-least-value a))
-         (define new-a.n (- a.n n))
+         (define new-a.n (+ a.n n))
          (cond [(negative? new-a.n) (arity-at-least 0)]
                [else (arity-at-least new-a.n)])]
-        [else (error 'arity-subtract/simple "this should never happen")]))
+        [else (error 'arity-add/simple "this should never happen")]))
 
 ;;(define-type Nat/Aal->Ar [(U Natural (arity-at-least Natural)) -> Procedure-Arity])
 
@@ -296,7 +330,10 @@
           [(list? arity) (normalize-arity (flatten (map proc arity)))]
           [else (error 'arity-map "this should never happen, given ~v" arity)])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define empty-arity+keywords (arity+keywords '() '() '()))
+(define any-arity+keywords (arity+keywords (arity-at-least 0) '() #f))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
