@@ -1,8 +1,9 @@
-#lang racket
+#lang racket/base
 
 (provide map)
 
 (require (only-in racket/base [map rkt:map])
+         racket/list
          "keyword-lambda.rkt"
          )
 (module+ test
