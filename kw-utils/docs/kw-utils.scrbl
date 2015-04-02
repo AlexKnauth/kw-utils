@@ -12,3 +12,5 @@ source code: @url["https://github.com/AlexKnauth/kw-utils"]
 
 @include-section[(lib "kw-utils/docs/arity+keywords.scrbl")]
 
+@include-section[(lib "kw-utils/docs/kw-map.scrbl")]
+

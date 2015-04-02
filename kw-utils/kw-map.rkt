@@ -31,6 +31,10 @@ define map
           keyword-apply(f kws kw-args args)
 
 module+ test
+  check-equal? (map (λ (#:x x) {x + 1}) #:x '(1 2 3 4))
+               '(2 3 4 5)
+  check-equal? (map (λ (x #:y y) {x + y}) '(1 2 3 4) #:y '(10 100 1000 10000))
+               '(11 102 1003 10004)
   define (KE #:m m #:v v)
     {1/2 * m * sqr(v)}
   check-equal? (map KE #:m '(2 2 2 2) #:v '(0 1 2 3))
