@@ -9,6 +9,8 @@
          arity+keywords-matches?
          procedure-arity+keywords-matches?
          procedure-arity+keywords-matches?/c
+         procedure-required-keywords
+         procedure-allowed-keywords
          arity+keywords-combine/or  arity-combine/or  kws-combine/or
          arity+keywords-combine/and arity-combine/and kws-combine/and
          arity+keywords-combine
@@ -62,6 +64,12 @@
   (define-values (req-kws allowed-kws)
     (procedure-keywords proc))
   (arity+keywords arity req-kws allowed-kws))
+
+(define (procedure-required-keywords proc)
+  (arity+keywords-required-kws (procedure-arity+keywords proc)))
+
+(define (procedure-allowed-keywords proc)
+  (arity+keywords-allowed-kws (procedure-arity+keywords proc)))
 
 ;; proceudre-reduce-arity+keywords : Procedure Arity+Keywords -> Procedure
 (define (procedure-reduce-arity+keywords proc a)
