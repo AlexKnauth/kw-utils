@@ -13,6 +13,8 @@
 (module+ test
   (require rackunit racket/math))
 
+;; Based on https://gist.github.com/Metaxal/578b473bc48886f81123
+
 ;; (apply/kw-hash proc kw-hash arg ... rst-args)
 (define apply/kw-hash
   (keyword-lambda (kws kw-args proc kw-hash . other-args)
