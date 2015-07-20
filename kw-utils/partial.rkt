@@ -11,6 +11,10 @@
 (module+ test
   (require rackunit))
 
+;; based on partial from rackjure:
+;; https://github.com/greghendershott/rackjure/blob/master/rackjure/utils.rkt
+;; http://pkg-build.racket-lang.org/doc/rackjure/index.html#%28def._%28%28lib._rackjure%2Futils..rkt%29._partial%29%29
+
 (define (kw-proc name arity+kws proc)
   (procedure-reduce-arity+keywords
    (procedure-rename (make-keyword-procedure proc) name)
