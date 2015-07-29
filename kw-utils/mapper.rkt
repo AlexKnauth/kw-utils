@@ -15,7 +15,9 @@ define mapper
 module+ test
   check-equal? ((mapper add1) '(1 2 3)) '(2 3 4)
   check-equal? ((mapper +) '(1 2 3) '(4 5 6)) '(5 7 9)
+  check-equal? ((mapper + 3) '(1 2 3)) '(4 5 6)
   check-equal? ((mapper + 3) '(1 2 3) '(4 5 6)) '(8 10 12)
   check-equal? ((mapper app + 3) '(1 2 3) '(4 5 6)) '(8 10 12)
+  check-equal? ((mapper app) (list add1 sub1) '(0 0)) '(1 -1)
   check-equal? ((mapper) (list add1 sub1) '(0 0)) '(1 -1)
   
