@@ -4,5 +4,5 @@
 
 (define deps '("base" "sweet-exp" "my-cond"))
 
-(define build-deps '("rackunit-lib" "scribble-lib" "racket-doc"))
+(define build-deps '("rackunit-lib" "scribble-lib" "racket-doc" "rackjure"))
 
