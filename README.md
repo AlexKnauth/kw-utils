@@ -13,3 +13,9 @@ arity+keywords: http://pkg-build.racket-lang.org/doc/kw-utils/arity_keywords_scr
 
 map with keywords: http://pkg-build.racket-lang.org/doc/kw-utils/kw-map_scrbl.html
 
+kw-hash: http://pkg-build.racket-lang.org/doc/kw-utils/kw-hash_scrbl.html
+
+partial application: http://pkg-build.racket-lang.org/doc/kw-utils/Partial_application_with_keywords.html
+
+curried map: http://pkg-build.racket-lang.org/doc/kw-utils/Creating_functions_that_map_over_lists.html
+
