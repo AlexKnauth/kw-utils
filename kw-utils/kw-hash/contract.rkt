@@ -4,7 +4,6 @@
 
 (require racket/contract/base
          racket/contract/combinator
-         racket/local
          "../keyword-lambda.rkt"
          "../kw-hash.rkt"
          (for-syntax racket/base
@@ -23,6 +22,8 @@
          (make-kw-hash->any (list arg/c.c ...) kw-hash/c.c))]
       )))
 
+;; make-kw-hash->any : (Listof Chaperone-Contract) Chaperone-Contract -> Chaperone-Contract
+;; The function that kw-hash-> expands into
 (define (make-kw-hash->any arg-ctcs kw-hash-ctc)
   (make-chaperone-contract
    #:name `(kw-hash-> ,(map contract-name arg-ctcs)
@@ -33,6 +34,10 @@
                  (map contract-projection arg-ctcs)
                  (contract-projection kw-hash-ctc))))
 
+;; Proj is [Blame -> [Any -> Any]]
+
+;; make-kw-hash->any-proj : (Listof Proj) Proj -> Proj
+;; Makes projections for kw-hash-> contracts
 (define ((make-kw-hash->any-proj arg-projs kw-hash-proj) blame)
   ;; arg-wrappers : (Listof [Arg -> Arg])
   (define arg-wrappers
@@ -58,28 +63,34 @@
            (apply values args*)
            (apply values kw-args* args*))))))
 
+;; check-procedure : Blame Any -> Void
 (define (check-procedure blame f)
   (unless (procedure? f)
     (raise-blame-error blame f '(expected: "procedure?" given: "~e") f)))
 
+;; check-length : Blame Any Natural Natural -> Void
 (define (check-length blame f actual-length expected-length)
   (unless (= actual-length expected-length)
     (raise-blame-error (blame-swap blame) f
                        '(expected: "~v arguments" given: "~v non-keyword arguments")
                        expected-length actual-length)))
 
+;; app : [a -> b] a -> b
 (define (app f a)
   (f a))
 
+;; map-hash-ref : (Hashof a b) (Listof a) -> (Listof b)
 (define (map-hash-ref hash lst)
   (for/list ([key (in-list lst)])
     (hash-ref hash key)))
 
+;; get-arg-wrapper : Blame Proj String -> [Any -> Any]
 (define (get-arg-wrapper blame proj context)
   (define arg-blame
     (blame-add-context blame context #:swap? #t))
   (proj arg-blame))
 
+;; get-arg-wrappers : Blame (Listof Proj) -> (Listof [Any -> Any])
 (define (get-arg-wrappers blame arg-projs)
   (for/list ([proj (in-list arg-projs)]
              [i (in-naturals)])
