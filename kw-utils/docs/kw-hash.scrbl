@@ -56,3 +56,15 @@ like @racket[apply/kw-hash], but doesn't take a list argument at the end.
 returns a hash-table containing the given keyword arguments.
 }
 
+@section{kw-hash contracts}
+
+@defmodule[kw-utils/kw-hash/contract]
+
+@defform*[#:literals (any)
+          [(kw-hash-> [arg/c ...] #:kws kw-hash/c any)
+           (kw-hash-> [arg/c ...] #:rest rest/c #:kws kw-hash/c any)]]{
+Produces a contract for functions that can accept arbitrary keyword arguments.
+The contract puts the keywords in a hash table and checks that against the
+@racket[kw-hash/c] contract.
+}
+
