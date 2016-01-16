@@ -4,6 +4,7 @@
 
 (require racket/contract/base
          racket/contract/combinator
+         racket/function
          "../keyword-lambda.rkt"
          "../kw-hash.rkt"
          (for-syntax racket/base
@@ -68,12 +69,22 @@
   (unless (procedure? f)
     (raise-blame-error blame f '(expected: "procedure?" given: "~e") f)))
 
-;; check-length : Blame Any Natural Natural -> Void
-(define (check-length blame f actual-length expected-length)
-  (unless (= actual-length expected-length)
-    (raise-blame-error (blame-swap blame) f
-                       '(expected: "~v arguments" given: "~v non-keyword arguments")
-                       expected-length actual-length)))
+;; check-length : Blame Any Natural Procedure-Arity -> Void
+(define (check-length blame f actual-length expected-arity)
+  (unless (arity-includes? expected-arity actual-length)
+    (cond
+      [(exact-nonnegative-integer? expected-arity)
+       (raise-blame-error (blame-swap blame) f
+                          '(expected: "~v arguments" given: "~v non-keyword arguments")
+                          expected-arity actual-length)]
+      [(arity-at-least? expected-arity)
+       (raise-blame-error (blame-swap blame) f
+                          '(expected: "at least ~v arguments" given: "~v non-keyword arguments")
+                          (arity-at-least-value expected-arity) actual-length)]
+      [else
+       (raise-blame-error (blame-swap blame) f
+                          '(expected: "arity ~v" given: "~v non-keyword arguments")
+                          expected-arity actual-length)])))
 
 ;; app : [a -> b] a -> b
 (define (app f a)
