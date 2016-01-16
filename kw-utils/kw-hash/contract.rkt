@@ -5,6 +5,7 @@
 (require racket/contract/base
          racket/contract/combinator
          racket/function
+         racket/list
          "../keyword-lambda.rkt"
          "../kw-hash.rkt"
          (for-syntax racket/base
@@ -20,29 +21,44 @@
        #:declare arg/c (expr/c #'chaperone-contract? #:name "argument contract")
        #:declare kw-hash/c (expr/c #'chaperone-contract? #:name "kw-hash contract")
        (syntax/loc stx
-         (make-kw-hash->any (list arg/c.c ...) kw-hash/c.c))]
+         (make-kw-hash->any (list arg/c.c ...) #false kw-hash/c.c))]
+      [(kw-hash-> [arg/c ...] #:rest rest/c #:kws kw-hash/c any)
+       #:declare arg/c (expr/c #'chaperone-contract? #:name "argument contract")
+       #:declare rest/c (expr/c #'chaperone-contract? #:name "rest contract")
+       #:declare kw-hash/c (expr/c #'chaperone-contract? #:name "kw-hash contract")
+       (syntax/loc stx
+         (make-kw-hash->any (list arg/c.c ...) rest/c.c kw-hash/c.c))]
       )))
 
-;; make-kw-hash->any : (Listof Chaperone-Contract) Chaperone-Contract -> Chaperone-Contract
+;; make-kw-hash->any :
+;; (Listof Chaperone-Contract) (Maybe Chaperone-Contract) Chaperone-Contract -> Chaperone-Contract
 ;; The function that kw-hash-> expands into
-(define (make-kw-hash->any arg-ctcs kw-hash-ctc)
+(define (make-kw-hash->any arg-ctcs rest-ctc kw-hash-ctc)
   (make-chaperone-contract
    #:name `(kw-hash-> ,(map contract-name arg-ctcs)
+                      ,@(if rest-ctc
+                            `(#:rest ,(contract-name rest-ctc))
+                            `())
                       #:kws ,(contract-name kw-hash-ctc)
                       any)
    #:first-order procedure?
    #:projection (make-kw-hash->any-proj
                  (map contract-projection arg-ctcs)
+                 (and rest-ctc (contract-projection rest-ctc))
                  (contract-projection kw-hash-ctc))))
 
 ;; Proj is [Blame -> [Any -> Any]]
 
-;; make-kw-hash->any-proj : (Listof Proj) Proj -> Proj
+;; make-kw-hash->any-proj : (Listof Proj) (Maybe Proj) Proj -> Proj
 ;; Makes projections for kw-hash-> contracts
-(define ((make-kw-hash->any-proj arg-projs kw-hash-proj) blame)
+(define ((make-kw-hash->any-proj arg-projs rest-proj kw-hash-proj) blame)
+  (define n (length arg-projs))
   ;; arg-wrappers : (Listof [Arg -> Arg])
   (define arg-wrappers
     (get-arg-wrappers blame arg-projs))
+  ;; rest-wrapper : (Option [(Listof Any) -> (Listof Any)])
+  (define rest-wrapper
+    (and rest-proj (get-arg-wrapper blame rest-proj "the rest argument of")))
   ;; kws-wrapper : [Kws-Hash -> Kws-Hash]
   (define kws-wrapper
     (get-arg-wrapper blame kw-hash-proj "the keywords of"))
@@ -51,9 +67,18 @@
     (chaperone-procedure
      f
      (keyword-lambda (kws kw-args . args)
-       (check-length blame f (length args) (length arg-wrappers))
+       (check-length blame f (length args)
+                     (if rest-wrapper
+                         (arity-at-least n)
+                         n))
        (define args*
-         (map app arg-wrappers args))
+         (map app arg-wrappers (take args n)))
+       (define rest*
+         (and rest-wrapper (rest-wrapper (drop args n))))
+       (define args+rest*
+         (if rest-wrapper
+             (append args* rest*)
+             args*))
        (define kw-hash*
          (kws-wrapper (keyword-app-make-kw-hash kws kw-args)))
        ;; kw-args* has to be in the same order as kw-args
@@ -61,8 +86,8 @@
          (map-hash-ref kw-hash* kws))
        (if (null? kw-args*)
            ;; if no keywords were passed in, don't include them
-           (apply values args*)
-           (apply values kw-args* args*))))))
+           (apply values args+rest*)
+           (apply values kw-args* args+rest*))))))
 
 ;; check-procedure : Blame Any -> Void
 (define (check-procedure blame f)
@@ -112,17 +137,40 @@
 (module+ test
   (define c
     (kw-hash-> [number? (listof symbol?)] #:kws (hash/c keyword? string?) any))
+  (define c2
+    (kw-hash-> [number? (listof symbol?)] #:rest (listof 1) #:kws (hash/c keyword? string?) any))
   (check-pred chaperone-contract? c)
+  (check-pred chaperone-contract? c2)
   (check-equal? (contract-name c)
                 '(kw-hash-> [number? (listof symbol?)] #:kws (hash/c keyword? string?) any))
+  (check-equal? (contract-name c2)
+                '(kw-hash-> [number? (listof symbol?)]
+                            #:rest (listof 1) #:kws (hash/c keyword? string?)
+                            any))
   (define/contract (f x syms #:hello [hello "hello"])
     c
     x)
   (check-equal? (f 3 '(a b c)) 3)
+  (check-equal? (f 3 '(a b c) #:hello "wirled") 3)
   (check-exn exn:fail:contract:blame?
              (λ () (f 'three '(a b c))))
   (check-exn exn:fail:contract:blame?
              (λ () (f 3 '(one two 5))))
   (check-exn exn:fail:contract:blame?
              (λ () (f 3 '(a b c) #:hello 'not-a-string)))
+  (define/contract (f2 x syms #:hello [hello "hello"] . rst)
+    c2
+    x)
+  (check-equal? (f2 3 '(a b c)) 3)
+  (check-equal? (f2 3 '(a b c) #:hello "wirled") 3)
+  (check-equal? (f2 3 '(a b c) 1 1 1 1) 3)
+  (check-equal? (f2 3 '(a b c) 1 #:hello "wirled" 1 1 1) 3)
+  (check-exn exn:fail:contract:blame?
+             (λ () (f2 'three '(a b c))))
+  (check-exn exn:fail:contract:blame?
+             (λ () (f2 3 '(one two 5))))
+  (check-exn exn:fail:contract:blame?
+             (λ () (f2 3 '(a b c) #:hello 'not-a-string)))
+  (check-exn exn:fail:contract:blame?
+             (λ () (f2 3 '(a b c) 1 1 1 2)))
   )
