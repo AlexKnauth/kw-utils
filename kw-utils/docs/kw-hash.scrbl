@@ -2,6 +2,7 @@
 @(require scribble/eval
           (for-label kw-utils/kw-hash
                      kw-utils/kw-hash-lambda
+                     kw-utils/kw-hash/contract
                      kw-utils/keyword-lambda
                      racket/base
                      racket/contract/base
