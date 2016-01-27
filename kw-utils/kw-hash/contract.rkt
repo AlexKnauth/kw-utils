@@ -67,27 +67,30 @@
     (chaperone-procedure
      f
      (keyword-lambda (kws kw-args . args)
-       (check-length blame f (length args)
-                     (if rest-wrapper
-                         (arity-at-least n)
-                         n))
-       (define args*
-         (map app arg-wrappers (take args n)))
-       (define rest*
-         (and rest-wrapper (rest-wrapper (drop args n))))
-       (define args+rest*
-         (if rest-wrapper
-             (append args* rest*)
-             args*))
-       (define kw-hash*
-         (kws-wrapper (keyword-app-make-kw-hash kws kw-args)))
-       ;; kw-args* has to be in the same order as kw-args
-       (define kw-args*
-         (map-hash-ref kw-hash* kws))
-       (if (null? kw-args*)
-           ;; if no keywords were passed in, don't include them
-           (apply values args+rest*)
-           (apply values kw-args* args+rest*))))))
+       (with-continuation-mark
+        contract-continuation-mark-key blame
+        (let ()
+          (check-length blame f (length args)
+                        (if rest-wrapper
+                            (arity-at-least n)
+                            n))
+          (define args*
+            (map app arg-wrappers (take args n)))
+          (define rest*
+            (and rest-wrapper (rest-wrapper (drop args n))))
+          (define args+rest*
+            (if rest-wrapper
+                (append args* rest*)
+                args*))
+          (define kw-hash*
+            (kws-wrapper (keyword-app-make-kw-hash kws kw-args)))
+          ;; kw-args* has to be in the same order as kw-args
+          (define kw-args*
+            (map-hash-ref kw-hash* kws))
+          (if (null? kw-args*)
+              ;; if no keywords were passed in, don't include them
+              (apply values args+rest*)
+              (apply values kw-args* args+rest*))))))))
 
 ;; check-procedure : Blame Any -> Void
 (define (check-procedure blame f)
