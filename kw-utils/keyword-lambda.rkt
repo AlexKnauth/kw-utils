@@ -25,19 +25,47 @@
        #:with name (syntax-local-infer-name stx)
        #:with name* (generate-temporary #'name)
        #:with name*-expr #'(lambda (kws kw-args . rest-args) body ...)
+       #:with plain-expr #'(lambda rest-args
+                             (rest-args.apply-id name* '() '() rest-args.apply-arg ...))
        (cond [(identifier? #'name)
               #'(let ([name* name*-expr])
                   (make-keyword-procedure
                    name*
-                   (let ([name (lambda rest-args
-                                 (rest-args.apply-id name* '() '() rest-args.apply-arg ...))])
+                   (let ([name plain-expr])
                      name)))]
              [else
               #'(let ([name* name*-expr])
                   (make-keyword-procedure
                    name*
-                   (lambda rest-args
-                     (rest-args.apply-id name* '() '() rest-args.apply-arg ...))))])])))
+                   plain-expr))])])))
+
+;; (keyword-lists-case-lambda (kws kw-args . rest-args) body ...+)
+(define-syntax keyword-lists-case-lambda
+  (lambda (stx)
+    (syntax-parse stx
+      [(keyword-lists-case-lambda kws:id kw-args:id [rest-args:args body:expr ...+] ...)
+       #:with name (syntax-local-infer-name stx)
+       #:with name* (generate-temporary #'name)
+       #:with name*-expr #'(case-lambda
+                             [(kws kw-args . rest-args) body ...]
+                             ...)
+       #:with plain-expr #'(case-lambda
+                             [rest-args
+                              (rest-args.apply-id name* '() '() rest-args.apply-arg ...)]
+                             ...)
+       (cond [(identifier? #'name)
+              #'(let ([name* name*-expr])
+                  (make-keyword-procedure
+                   name*
+                   (let ([name plain-expr])
+                     name)))]
+             [else
+              #'(let ([name* name*-expr])
+                  (make-keyword-procedure
+                   name*
+                   plain-expr))])])))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module+ test
   (local [(define proc
