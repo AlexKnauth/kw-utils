@@ -2,30 +2,42 @@
 
 (provide keyword-lambda)
 
-(require (for-syntax racket/base syntax/parse syntax/name))
+(require (for-syntax racket/base racket/syntax syntax/parse syntax/name))
 
 (module+ test
   (require rackunit racket/local))
+
+(begin-for-syntax
+  (define-syntax-class args
+    [pattern (arg:id ... [opt-arg:id default:expr] ...)
+             #:with apply-id #'#%app
+             #:with [apply-arg ...] #'[arg ... opt-arg ...]]
+    [pattern (arg:id ... [opt-arg:id default:expr] ... . rest:id)
+             #:with apply-id #'apply
+             #:with [apply-arg ...] #'[arg ... opt-arg ... rest]]
+    ))
 
 ;; (keyword-lambda (kws kw-args . rest-args) body ...+)
 (define-syntax keyword-lambda
   (lambda (stx)
     (syntax-parse stx
-      [(keyword-lambda (kws:id kw-args:id . rest-args) body:expr ...+)
-       (define name (syntax-local-infer-name stx))
-       (cond [(or (symbol? name) (identifier? name))
-              (with-syntax ([name name])
-                #'(make-keyword-procedure
-                   (lambda (kws kw-args . rest-args) body ...)
+      [(keyword-lambda (kws:id kw-args:id . rest-args:args) body:expr ...+)
+       #:with name (syntax-local-infer-name stx)
+       #:with name* (generate-temporary #'name)
+       #:with name*-expr #'(lambda (kws kw-args . rest-args) body ...)
+       (cond [(identifier? #'name)
+              #'(let ([name* name*-expr])
+                  (make-keyword-procedure
+                   name*
                    (let ([name (lambda rest-args
-                                 (let ([kws '()] [kw-args '()])
-                                   body ...))])
+                                 (rest-args.apply-id name* '() '() rest-args.apply-arg ...))])
                      name)))]
-             [else #'(make-keyword-procedure
-                      (lambda (kws kw-args . rest-args) body ...)
-                      (lambda rest-args
-                        (let ([kws '()] [kw-args '()])
-                          body ...)))])])))
+             [else
+              #'(let ([name* name*-expr])
+                  (make-keyword-procedure
+                   name*
+                   (lambda rest-args
+                     (rest-args.apply-id name* '() '() rest-args.apply-arg ...))))])])))
 
 (module+ test
   (local [(define proc
