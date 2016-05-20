@@ -1,6 +1,8 @@
 #lang racket/base
 
 (provide keyword-lambda)
+(module+ private
+  (provide keyword-lists-case-lambda))
 
 (require (for-syntax racket/base racket/syntax syntax/parse syntax/name))
 
