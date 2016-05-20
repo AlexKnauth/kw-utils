@@ -21,13 +21,13 @@
              body ...))])))
 
 (module+ unstable
-  (require (submod "keyword-lambda.rkt" private))
+  (require "kw-lists-lambda.rkt")
 
   (define-syntax kw-hash-case-lambda
     (lambda (stx)
       (syntax-parse stx
         [(kw-hash-case-lambda #:kws kw-hash:id [rest-args body:expr ...+])
-         #'(keyword-lists-case-lambda kws kw-args
+         #'(kw-lists-case-lambda kws kw-args
              [rest-args
               (let ([kw-hash (keyword-app-make-kw-hash kws kw-args)])
                 body ...)])])))
