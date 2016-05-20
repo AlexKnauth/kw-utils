@@ -4,7 +4,7 @@
 (module+ unstable
   (provide kw-hash-case-lambda))
 
-(require "keyword-lambda.rkt"
+(require "kw-lists-lambda.rkt"
          "kw-hash.rkt"
          (for-syntax racket/base
                      syntax/parse
@@ -16,13 +16,11 @@
   (lambda (stx)
     (syntax-parse stx
       [(kw-hash-lambda rest-args #:kws kw-hash:id body:expr ...+)
-       #'(keyword-lambda (kws kw-args . rest-args)
+       #'(kw-lists-lambda kws kw-args rest-args
            (let ([kw-hash (keyword-app-make-kw-hash kws kw-args)])
              body ...))])))
 
 (module+ unstable
-  (require "kw-lists-lambda.rkt")
-
   (define-syntax kw-hash-case-lambda
     (lambda (stx)
       (syntax-parse stx
