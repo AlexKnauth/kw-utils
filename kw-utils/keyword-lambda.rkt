@@ -1,71 +1,14 @@
 #lang racket/base
 
 (provide keyword-lambda)
-(module+ private
-  (provide keyword-lists-case-lambda))
 
-(require (for-syntax racket/base racket/syntax syntax/parse syntax/name))
-
+(require "kw-lists-lambda.rkt")
 (module+ test
-  (require rackunit racket/local))
+  (require rackunit
+           racket/local))
 
-(begin-for-syntax
-  (define-syntax-class args
-    [pattern (arg:id ... [opt-arg:id default:expr] ...)
-             #:with apply-id #'#%app
-             #:with [apply-arg ...] #'[arg ... opt-arg ...]]
-    [pattern (arg:id ... [opt-arg:id default:expr] ... . rest:id)
-             #:with apply-id #'apply
-             #:with [apply-arg ...] #'[arg ... opt-arg ... rest]]
-    ))
-
-;; (keyword-lambda (kws kw-args . rest-args) body ...+)
-(define-syntax keyword-lambda
-  (lambda (stx)
-    (syntax-parse stx
-      [(keyword-lambda (kws:id kw-args:id . rest-args:args) body:expr ...+)
-       #:with name (syntax-local-infer-name stx)
-       #:with name* (generate-temporary #'name)
-       #:with name*-expr #'(lambda (kws kw-args . rest-args) body ...)
-       #:with plain-expr #'(lambda rest-args
-                             (rest-args.apply-id name* '() '() rest-args.apply-arg ...))
-       (cond [(identifier? #'name)
-              #'(let ([name* name*-expr])
-                  (make-keyword-procedure
-                   name*
-                   (let ([name plain-expr])
-                     name)))]
-             [else
-              #'(let ([name* name*-expr])
-                  (make-keyword-procedure
-                   name*
-                   plain-expr))])])))
-
-;; (keyword-lists-case-lambda (kws kw-args . rest-args) body ...+)
-(define-syntax keyword-lists-case-lambda
-  (lambda (stx)
-    (syntax-parse stx
-      [(keyword-lists-case-lambda kws:id kw-args:id [rest-args:args body:expr ...+] ...)
-       #:with name (syntax-local-infer-name stx)
-       #:with name* (generate-temporary #'name)
-       #:with name*-expr #'(case-lambda
-                             [(kws kw-args . rest-args) body ...]
-                             ...)
-       #:with plain-expr #'(case-lambda
-                             [rest-args
-                              (rest-args.apply-id name* '() '() rest-args.apply-arg ...)]
-                             ...)
-       (cond [(identifier? #'name)
-              #'(let ([name* name*-expr])
-                  (make-keyword-procedure
-                   name*
-                   (let ([name plain-expr])
-                     name)))]
-             [else
-              #'(let ([name* name*-expr])
-                  (make-keyword-procedure
-                   name*
-                   plain-expr))])])))
+(define-syntax-rule (keyword-lambda (kws kw-args . rest-args) body ...)
+  (kw-lists-lambda kws kw-args rest-args body ...))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
