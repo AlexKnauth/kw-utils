@@ -3,7 +3,7 @@
           (for-label kw-utils/kw-hash
                      kw-utils/kw-hash-lambda
                      kw-utils/kw-hash/contract
-                     kw-utils/keyword-lambda
+                     kw-utils/kw-lists-lambda
                      racket/base
                      racket/contract/base
                      racket/math
@@ -18,7 +18,7 @@
 @defform[(kw-hash-lambda formals #:kws kw-hash-id body-expr ...+)]{
 roughly equivalent to
 @(racketblock
-  (keyword-lambda (kws kw-args . formals)
+  (kw-lists-lambda kws kw-args formals
     (let ([kw-hash-id (keyword-apply make-kw-hash kws kw-args '())])
       body ...)))
 
