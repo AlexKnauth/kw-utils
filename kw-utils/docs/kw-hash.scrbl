@@ -30,6 +30,27 @@ roughly equivalent to
   (proc 0 1 2 #:a 'a #:b 'b)
 ]}
 
+@defform[(kw-hash-case-lambda #:kws kw-hash-id [formals body-expr ...+] ...)]{
+roughly equivalent to
+@(racketblock
+  (kw-lists-case-lambda kws kw-args
+    [formals
+     (let ([kw-hash-id (keyword-apply make-kw-hash kws kw-args '())])
+       body ...)]
+    ...))
+
+@examples[
+  (require kw-utils/kw-hash-lambda)
+  (define proc
+    (kw-hash-case-lambda #:kws kw-hash
+      [(a)
+       (list a kw-hash)]
+      [(a b)
+       (list a b kw-hash)]))
+  (proc 0 #:a 'a #:b 'b)
+  (proc 0 1 #:a 'a #:b 'b)
+]}
+
 @section{kw-hash}
 
 @defmodule[kw-utils/kw-hash]
