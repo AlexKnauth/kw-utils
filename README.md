@@ -5,7 +5,7 @@ misc kw utils
 
 main documentation: http://pkg-build.racket-lang.org/doc/kw-utils/index.html
 
-- keyword-lambda: http://pkg-build.racket-lang.org/doc/kw-utils/keyword-lambda_scrbl.html
+- kw-lists-lambda: http://docs.racket-lang.org/kw-utils/kw-lists-lambda_scrbl.html
 
 - keyword-apply/sort: http://pkg-build.racket-lang.org/doc/kw-utils/keyword-apply-sort_scrbl.html
 
