@@ -3,12 +3,15 @@
           racket/base
           scribble/eval
           (for-label kw-utils/arity+keywords
+                     kw-utils/arity+keywords/syntax
                      racket/base
                      racket/contract/base
                      racket/function
                      ))
 
 @title[#:tag "arity+keywords.scrbl"]{arity+keywords}
+
+@section{Procedure arities with keywords}
 
 @defmodule[kw-utils/arity+keywords]
 
@@ -130,4 +133,33 @@ combines the @racket[arity+kws]es into one @racket[arity+keywords] instance in a
   (arity+keywords-combine/and (arity+keywords '(1 2) '(#:a) '(#:a #:b #:c #:d))
                               (arity+keywords '(2 3) '(#:b) '(#:a #:b #:c #:e)))
 ]}
+
+@section{Getting the arity from function arguments syntax}
+
+@defmodule[kw-utils/arity+keywords/syntax]
+
+@defproc[(kw-formals->arity+keywords [fmls-stx syntax?]) arity+keywords?]{
+Given the @racket[args] in @racket[(lambda args body)], returns an
+@racket[arity+keywords] value representing the arity and keywords of
+the function.
+
+@examples[
+  (require kw-utils/arity+keywords/syntax)
+  (kw-formals->arity+keywords #'())
+  (kw-formals->arity+keywords #'(a b c))
+  (kw-formals->arity+keywords #'(a b [c 2]))
+  (kw-formals->arity+keywords #'(a b . rst))
+  (kw-formals->arity+keywords #'(a #:b b))
+  (kw-formals->arity+keywords #'(a #:b [b 1]))
+  (kw-formals->arity+keywords #'(#:a a . rst))
+]}
+
+@deftogether[[
+  @defproc[(kw-formals->arity [fmls-stx syntax?]) normalized-arity?]
+  @defproc[(kw-formals->required-kws [fmls-stx syntax?]) (listof keyword?)]
+  @defproc[(kw-formals->allowed-kws [fmls-stx syntax?]) (listof keyword?)]
+]]{
+Like @racket[kw-formals->arity+keywords], but just for the positional-argument
+arity, required keywords, and allowed keywords.
+}
 
