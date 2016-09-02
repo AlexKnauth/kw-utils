@@ -2,16 +2,22 @@
 
 @(require scribble/eval
           (for-label kw-utils/kw-map
-                     (rename-in racket/base [map rkt:map])
-                     racket/math
-                     ))
+                     racket/math))
+
+@(module original-ids racket/base
+   (require scribble/manual
+            (for-label racket/base))
+   (provide (all-defined-out))
+   (define rkt:map @racket[map]))
+@(require 'original-ids)
 
 @title[#:tag "kw-map.scrbl"]{map with keyword arguments}
 
 @defmodule[kw-utils/kw-map]
 
 @defproc[(map [proc procedure?] [lst list?] ... [#:<kw> lst2 list?] ...) list?]{
-like @racket[rkt:map], but accepts keyword arguments as well as positional arguments.
+like @rkt:map from @racketmodname[racket/base], but accepts keyword arguments as
+well as positional arguments.
 
 @examples[
   (require kw-utils/kw-map racket/math)
