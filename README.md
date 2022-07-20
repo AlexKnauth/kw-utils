@@ -1,4 +1,4 @@
-kw-utils [![Build Status](https://travis-ci.org/AlexKnauth/kw-utils.png?branch=master)](https://travis-ci.org/AlexKnauth/kw-utils)
+kw-utils
 ========
 
 misc kw utils
