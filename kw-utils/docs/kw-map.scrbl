@@ -11,7 +11,7 @@
    (define rkt:map @racket[map]))
 @(require 'original-ids)
 
-@title[#:tag "kw-map.scrbl"]{map with keyword arguments}
+@title[#:tag "kw-map.scrbl"]{Map with keyword arguments}
 
 @defmodule[kw-utils/kw-map]
 

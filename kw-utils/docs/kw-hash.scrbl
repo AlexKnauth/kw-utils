@@ -9,7 +9,7 @@
                      racket/math
                      ))
 
-@title[#:tag "kw-hash.scrbl"]{kw-hash}
+@title{Grouping All Keywords into a Hash Table}
 
 @section{kw-hash-lambda}
 
@@ -51,7 +51,7 @@ roughly equivalent to
   (proc 0 1 #:a 'a #:b 'b)
 ]}
 
-@section{kw-hash}
+@section{Applying functions with keywords from a hash}
 
 @defmodule[kw-utils/kw-hash]
 
@@ -78,7 +78,7 @@ like @racket[apply/kw-hash], but doesn't take a list argument at the end.
 returns a hash-table containing the given keyword arguments.
 }
 
-@section{kw-hash contracts}
+@section{Function contracts with kw-hash}
 
 @defmodule[kw-utils/kw-hash/contract]
 

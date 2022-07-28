@@ -4,7 +4,7 @@
           (for-label kw-utils/lambda-kwrest
                      racket/base))
 
-@title[#:tag "lambda-kwrest.scrbl"]{lambda/kwrest}
+@title{Keyword Rest Arguments}
 
 @defmodule[kw-utils/lambda-kwrest]
 
