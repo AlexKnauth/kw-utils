@@ -97,7 +97,7 @@
       (cond
         [(@ r) (arity-at-least (@ s.pos-mand-N))]
         [(< (@ s.pos-mand-N) (@ s.pos-all-N))
-         (inclusive-range (@ s.pos-mand-N) (@ s.pos-all-N))]
+         (range (@ s.pos-mand-N) (add1 (@ s.pos-all-N)))]
         [else (@ s.pos-mand-N)])
       #:attr allowed-kws
       (cond
