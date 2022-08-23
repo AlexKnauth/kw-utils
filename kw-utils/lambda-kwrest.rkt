@@ -13,8 +13,7 @@
                      (only-in racket/syntax generate-temporary)
                      (only-in syntax/name syntax-local-infer-name)
                      syntax/parse
-                     (only-in syntax/parse [attribute @])
-                     (only-in syntax/parse/lib/function-header formals-no-rest)))
+                     (only-in syntax/parse [attribute @])))
 (module+ test
   (require racket/math
            rackunit))
@@ -46,15 +45,18 @@
       #:attr mand-kw #f])
 
   (define-splicing-syntax-class single-param
-    #:attributes [pos.param pos.id pos.mand pos.opt-id
+    #:attributes [id
+                  pos.param pos.id pos.mand pos.opt-id
                   pos.param/tmp pos.expr/tmp pos.default
                   kwp.kw kwp.id kwp.mand-kw kwp.default]
     [pattern {~seq pos:pos-param}
+      #:with id #'pos.id
       #:attr kwp.kw #f
       #:attr kwp.id #f
       #:attr kwp.mand-kw #f
       #:attr kwp.default #f]
     [pattern kwp:kw-param
+      #:with id #'kwp.id
       #:attr pos.param #f
       #:attr pos.id/tmp #f
       #:attr pos.param/tmp #f
@@ -66,7 +68,11 @@
 
   (define-splicing-syntax-class single-params
     #:auto-nested-attributes
-    [pattern {~and _:formals-no-rest {~seq :single-param ...} {~seq stx ...}}
+    [pattern {~and {~seq :single-param ...} {~seq stx ...}}
+      #:fail-when (check-duplicate-identifier (@ id))
+      "duplicate parameter name"
+      #:fail-when (check-duplicates (filter values (@ kwp.kw)) #:key syntax-e)
+      "duplicate keyword"
       #:attr pos-mand-N (length (syntax->list #'({~? pos.mand} ...)))
       #:attr pos-opt-N (length (syntax->list #'({~? pos.opt-id} ...)))
       #:attr pos-all-N (+ (@ pos-mand-N) (@ pos-opt-N))
