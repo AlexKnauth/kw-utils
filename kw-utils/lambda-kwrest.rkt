@@ -93,10 +93,11 @@
       #:attr pos-all-N (+ (@ pos-mand-N) (@ pos-opt-N))
       #:with pos-mand-N-stx #`'#,(@ pos-mand-N)
       #:with pos-all-N-stx #`'#,(@ pos-all-N)
-      #:attr [pos-index 1]
-      (for/fold ([acc '()] [i 0] #:result (reverse acc))
-                ([x (in-list (@ pos.id))])
-        (if x (values (cons i acc) (add1 i)) (values (cons #f acc) i)))
+      #:do [(define-values [rev-pos-index _i]
+              (for/fold ([acc '()] [i 0])
+                        ([x (in-list (@ pos.id))])
+                (if x (values (cons i acc) (add1 i)) (values (cons #f acc) i))))]
+      #:attr [pos-index 1] (reverse rev-pos-index)
       #:attr [pos-index-stx 1]
       (for/list ([i (in-list (@ pos-index))])
         (and i #`'#,i))
