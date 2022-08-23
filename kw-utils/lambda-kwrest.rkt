@@ -18,6 +18,21 @@
   (require racket/math
            rackunit))
 
+;; unhygienic version hack
+(define-syntax (maybe-require-syntax-parse-or->alt stx)
+  (define alt-available?
+    (let-values ([(vars stxs)
+                  (parameterize ([current-namespace (make-base-namespace)])
+                    (eval '(require syntax/parse))
+                    (module->exports 'syntax/parse))])
+      (ormap (λ (e) (eq? '~alt (car e))) (cdr (assoc 0 stxs)))))
+  (cond
+    [alt-available? #'(void)]
+    [else
+     (datum->syntax stx
+       '(require (for-syntax (only-in syntax/parse [~or ~alt]))))]))
+(maybe-require-syntax-parse-or->alt)
+
 ;; ---------------------------------------------------------
 
 (begin-for-syntax
