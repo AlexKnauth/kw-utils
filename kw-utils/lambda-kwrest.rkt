@@ -5,7 +5,7 @@
 (require (only-in racket/list drop)
          (only-in racket/set subset?)
          (only-in racket/unsafe/undefined unsafe-undefined)
-         (for-syntax racket/base
+         (for-syntax (except-in racket/base syntax)
                      (only-in racket/function normalize-arity)
                      racket/list
                      racket/match
@@ -18,20 +18,33 @@
   (require racket/math
            rackunit))
 
+(define-for-syntax (syntax-export-available? mod sym [phase 0])
+  (let-values ([(vars stxs)
+                (parameterize ([current-namespace (make-base-namespace)])
+                  (eval `(require ,mod))
+                  (module->exports mod))])
+    (ormap (λ (e) (eq? sym (car e))) (cdr (assoc phase stxs)))))
+
 ;; unhygienic version hack
 (define-syntax (maybe-require-syntax-parse-or->alt stx)
-  (define alt-available?
-    (let-values ([(vars stxs)
-                  (parameterize ([current-namespace (make-base-namespace)])
-                    (eval '(require syntax/parse))
-                    (module->exports 'syntax/parse))])
-      (ormap (λ (e) (eq? '~alt (car e))) (cdr (assoc 0 stxs)))))
   (cond
-    [alt-available? #'(void)]
+    [(syntax-export-available? 'syntax/parse '~alt) (quote-syntax (void))]
     [else
      (datum->syntax stx
        '(require (for-syntax (only-in syntax/parse [~or ~alt]))))]))
 (maybe-require-syntax-parse-or->alt)
+
+(define-syntax (maybe-require-syntax-parse-template->syntax stx)
+  (cond
+    [(syntax-export-available? 'racket/base '~?)
+     (datum->syntax stx
+       '(require (for-syntax (only-in racket/base syntax))))]
+    [else
+     (datum->syntax stx
+       '(require (for-syntax (only-in syntax/parse/experimental/template
+                                      [template syntax]
+                                      [?? ~?]))))]))
+(maybe-require-syntax-parse-template->syntax)
 
 ;; ---------------------------------------------------------
 
